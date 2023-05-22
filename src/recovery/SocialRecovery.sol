@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.8.12 <0.9.0;
+pragma solidity ^0.8.17;
 
-import "./storage/IGuardianStorage.sol";
+import "./IGuardian.sol";
 //import "openzeppelin-contracts/utils/cryptography/SignatureChecker.sol";
 import {SignatureChecker} from "openzeppelin-contracts/utils/cryptography/SignatureChecker.sol";
-import "@safe-contracts/contracts/Safe.sol";
+//import "@safe-contracts/contracts/Safe.sol";
 
 /// @title Social Recovery Module
 /// @author CANDIDE Labs
