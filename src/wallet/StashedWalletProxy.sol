@@ -17,7 +17,7 @@ contract StashedWalletProxy is Upgradeable {
     /**
      * @dev Delegates the current call to `implementation`.
      *
-     * This function does not return to its internal call site, it will return directly to the external caller.
+     * This function dArchectureoes not return to its internal call site, it will return directly to the external caller.
      */
     function _delegate(address implementation) private {
         assembly {

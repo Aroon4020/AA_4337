@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
-
-import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {Pausable} from "openzeppelin-contracts/security/Pausable.sol";
 import {Create2} from "openzeppelin-contracts/utils/Create2.sol";
 import {StashedWallet} from "./StashedWallet.sol";
 import {StashedWalletProxy} from "./StashedWalletProxy.sol";
 
 /// @title StashedWalletFactory contract to deploy user smart wallets
-contract StashedWalletFactory is Ownable, Pausable {
+contract StashedWalletFactory {
     address public immutable walletImplementation;
 
     error ZeroAddressProvided();
 
-    constructor(address _walletImplementation, address _owner) Ownable() Pausable() {
+    constructor(address _walletImplementation, address _owner) {
         if (_walletImplementation == address(0) || _owner == address(0)) {
             revert ZeroAddressProvided();
         }
@@ -27,10 +24,10 @@ contract StashedWalletFactory is Ownable, Pausable {
     function createWallet(
         address entryPoint,
         address walletOwner,
-        uint32 upgradeDelay,
+        address guardianModule,
         bytes32 salt
-    ) external whenNotPaused returns (StashedWallet) {
-        address walletAddress = getWalletAddress(entryPoint, walletOwner, upgradeDelay, salt);
+    ) external returns (StashedWallet) {
+        address walletAddress = getWalletAddress(entryPoint, walletOwner,guardianModule, salt);
 
         // Determine if a wallet is already deployed at this address, if so return that
         uint256 codeSize = walletAddress.code.length;
@@ -42,7 +39,7 @@ contract StashedWalletFactory is Ownable, Pausable {
                 walletImplementation,
                 abi.encodeCall(
                     StashedWallet.initialize,
-                    (entryPoint, walletOwner, upgradeDelay)
+                    (entryPoint, walletOwner,guardianModule)
                 )))
             );
 
@@ -54,7 +51,7 @@ contract StashedWalletFactory is Ownable, Pausable {
     function getWalletAddress(
         address entryPoint,
         address walletOwner,
-        uint32 upgradeDelay,
+        address guardianModule,
         bytes32 salt
     ) public view returns (address) {
         bytes memory deploymentData = abi.encodePacked(
@@ -63,7 +60,7 @@ contract StashedWalletFactory is Ownable, Pausable {
                 walletImplementation,
                 abi.encodeCall(
                     StashedWallet.initialize,
-                    (entryPoint, walletOwner, upgradeDelay)
+                    (entryPoint, walletOwner,guardianModule)
                 )
             )
         );
@@ -71,13 +68,4 @@ contract StashedWalletFactory is Ownable, Pausable {
         return Create2.computeAddress(bytes32(salt), keccak256(deploymentData));
     }
 
-    /// @notice Pause the StashedWalletFactory to prevent new wallet creation. OnlyOwner
-    function pause() public onlyOwner {
-        _pause();
-    }
-
-    /// @notice Unpause the StashedWalletFactory to allow new wallet creation. OnlyOwner
-    function unpause() public onlyOwner {
-        _unpause();
-    }
 }

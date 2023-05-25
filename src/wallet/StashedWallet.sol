@@ -5,7 +5,8 @@ import {IAccount} from "src/interfaces/IAccount.sol";
 import {IEntryPoint} from "src/interfaces/IEntryPoint.sol";
 import {UserOperation} from "src/interfaces/UserOperation.sol";
 import {AccountStorage} from "src/utils/AccountStorage.sol";
-import {LogicUpgradeControl} from "src/utils/LogicUpgradeControl.sol";
+
+import {Upgradeable} from "src/utils/Upgradeable.sol";
 import {TokenCallbackHandler} from "src/callback/TokenCallbackHandler.sol";
 import {Initializable} from "openzeppelin-contracts/proxy/utils/Initializable.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
@@ -13,17 +14,17 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "openzeppelin-contracts/token/ERC721/IERC721.sol";
 import {IERC1155} from "openzeppelin-contracts/token/ERC1155/IERC1155.sol";
 import {ECDSA, SignatureChecker} from "openzeppelin-contracts/utils/cryptography/SignatureChecker.sol";
-
+import {Guardian} from "../guardianModule/Guardian.sol";
 /// @title StashedWallet - Smart contract wallet compatible with ERC-4337
 /// @dev This contract provides functionality to execute AA (ERC-4337) UserOperetion
 ///      It allows to receive and manage assets using the owner account of the smart contract wallet
-contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCallbackHandler {
+contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHandler{
     /// @notice All state variables are stored in AccountStorage.Layout with specific storage slot to avoid storage collision
     using AccountStorage for AccountStorage.Layout;
 
     /////////////////  EVENTS ///////////////
 
-    event AccountInitialized(address indexed account, address indexed entryPoint, address owner, uint32 upgradeDelay);
+    event AccountInitialized(address indexed account, address indexed entryPoint, address owner, address guardianModule);
     event UpdateEntryPoint(address indexed newEntryPoint, address indexed oldEntryPoint);
     event PayPrefund(address indexed payee, uint256 amount);
     event OwnershipTransferred(address indexed sender, address indexed newOwner);
@@ -62,9 +63,6 @@ contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCal
     /// @dev Reverts when zero address is assigned
     error ZeroAddressProvided();
 
-    /// @dev Reverts when upgrade delay is invalid
-    error InvalidUpgradeDelay();
-
     /// @dev Reverts when array argument size mismatch
     error LengthMismatch();
 
@@ -82,8 +80,8 @@ contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCal
     /// @notice Initialize function to setup the Stashed wallet contract
     /// @param  _entryPoint trused entrypoint
     /// @param  _owner wallet sign key address
-    /// @param  _upgradeDelay upgrade delay which update take effect
-    function initialize(address _entryPoint, address _owner, uint32 _upgradeDelay) public initializer {
+    /// @param _guardianModule contract address that manages the guardains for wallet recovery
+    function initialize(address _entryPoint, address _owner, address _guardianModule) public initializer {
         if (_entryPoint == address(0) || _owner == address(0)) {
             revert ZeroAddressProvided();
         }
@@ -91,15 +89,12 @@ contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCal
         AccountStorage.Layout storage layout = AccountStorage.layout();
         layout.entryPoint = IEntryPoint(_entryPoint);
         layout.owner = _owner;
-
-        if (_upgradeDelay < 2 days) revert InvalidUpgradeDelay();
-        layout.logicUpgrade.upgradeDelay = _upgradeDelay;
-
+        layout.guardianModule = _guardianModule;
         emit AccountInitialized(
             address(this),
             address(_entryPoint),
             _owner,
-            _upgradeDelay
+            _guardianModule
         );
     }
 
@@ -123,6 +118,10 @@ contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCal
     /// @notice Returns the contract owner
     function owner() public view returns (address) {
         return AccountStorage.layout().owner;
+    }
+    /// @notice Returns the guardianModule address
+    function guardianModule() public view returns(address) {
+        return AccountStorage.layout().guardianModule;
     }
 
     /// @notice Set the entrypoint contract, restricted to onlyOwner
@@ -186,17 +185,22 @@ contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCal
         }
     }
 
-    /// @notice Transfer ownership by owner
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    /// @notice Transfer ownership by onlyGuardian
+    function transferOwnership(address newOwner) public returns(address){
         AccountStorage.Layout storage layout = AccountStorage.layout();
+        require(msg.sender == layout.guardianModule);
+        
         layout.owner = newOwner;
         emit OwnershipTransferred(msg.sender, newOwner);
+        return newOwner;
     }
 
-    /// @notice preUpgradeTo is called before upgrading the wallet
-    function preUpgradeTo(address newImplementation) external onlyEntryPointOrOwner {
-        _preUpgradeTo(newImplementation);
+    /// @notice  upgrade the wallet
+    function UpgradeTo(address newImplementation) external onlyEntryPointOrOwner {
+        _upgradeTo(newImplementation);
     }
+
+    /// Upgrade Guardian Module???
 
     /////////////////  ASSETS MANAGER ///////////////
 
@@ -291,28 +295,5 @@ contract StashedWallet is IAccount, Initializable, LogicUpgradeControl, TokenCal
                 revert(add(result, 32), mload(result))
             }
         }
-    }
-
-    /// @dev Required by the OZ UUPS module
-    function _authorizeUpgrade(address) internal onlyOwner {}
-
-    /////////////////  SUPPORT INTERFACES ///////////////
-
-    /// @notice Support ERC-1271, verifies that the signer is the owner of the signing contract
-    function isValidSignature(
-        bytes32 hash,
-        bytes memory signature
-    ) public view returns (bytes4 magicValue) {
-        return
-            ECDSA.recover(hash, signature) == owner()
-                ? this.isValidSignature.selector
-                : bytes4(0);
-    }
-
-    /// @notice Support ERC165, query if a contract implements an interface
-    function supportsInterface(
-        bytes4 _interfaceID
-    ) public view override(TokenCallbackHandler) returns (bool) {
-        return supportsInterface(_interfaceID);
     }
 }
