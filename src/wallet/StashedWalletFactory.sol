@@ -10,8 +10,8 @@ contract StashedWalletFactory {
 
     error ZeroAddressProvided();
 
-    constructor(address _walletImplementation, address _owner) {
-        if (_walletImplementation == address(0) || _owner == address(0)) {
+    constructor(address _walletImplementation) {
+        if (_walletImplementation == address(0)) {
             revert ZeroAddressProvided();
         }
 

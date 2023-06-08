@@ -39,7 +39,7 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     /// @dev Only from EOA owner, or through the account itself (which gets redirected through execute())
     modifier onlyOwner() {
         if (msg.sender != owner() && msg.sender != address(this)) {
-            revert InvalidOwner();
+            revert("invalid owner");
         }
         _;
     }
@@ -47,27 +47,27 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     /// @notice Validate that only the entryPoint or Owner is able to call a method
     modifier onlyEntryPointOrOwner() {
         if (msg.sender != address(entryPoint()) && msg.sender != owner() && msg.sender != address(this)) {
-            revert InvalidEntryPointOrOwner();
+            revert("invalid call");
         }
         _;
     }
 
-    /////////////////  ERRORS ///////////////
+    // /////////////////  ERRORS ///////////////
 
-    /// @dev Reverts in case not valid owner
-    error InvalidOwner();
+    // /// @dev Reverts in case not valid owner
+    // error InvalidOwner();
 
-    /// @dev Reverts in case not valid entryPoint or owner
-    error InvalidEntryPointOrOwner();
+    // /// @dev Reverts in case not valid entryPoint or owner
+    // error InvalidEntryPointOrOwner();
 
-    /// @dev Reverts when zero address is assigned
-    error ZeroAddressProvided();
+    // /// @dev Reverts when zero address is assigned
+    // error ZeroAddressProvided();
 
-    /// @dev Reverts when array argument size mismatch
-    error LengthMismatch();
+    // /// @dev Reverts when array argument size mismatch
+    // error LengthMismatch();
 
-    /// @dev Reverts in case not valid signature
-    error InvalidSignature();
+    // /// @dev Reverts in case not valid signature
+    // error InvalidSignature();
 
     /////////////////  CONSTRUCTOR ///////////////
 
@@ -83,7 +83,7 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     /// @param _guardianModule contract address that manages the guardains for wallet recovery
     function initialize(address _entryPoint, address _owner, address _guardianModule) public initializer {
         if (_entryPoint == address(0) || _owner == address(0)) {
-            revert ZeroAddressProvided();
+            revert ("Zero Address");
         }
 
         AccountStorage.Layout storage layout = AccountStorage.layout();
@@ -126,7 +126,7 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
 
     /// @notice Set the entrypoint contract, restricted to onlyOwner
     function setEntryPoint(address _newEntryPoint) external onlyOwner {
-        if (_newEntryPoint == address(0)) revert ZeroAddressProvided();
+        if (_newEntryPoint == address(0)) revert("zero address");
 
         emit UpdateEntryPoint(_newEntryPoint, address(entryPoint()));
 
@@ -137,12 +137,10 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     /// @notice Validate that the userOperation is valid
     /// @param userOp - ERC-4337 User Operation
     /// @param userOpHash - Hash of the user operation, entryPoint address and chainId
-    /// @param aggregator - Signature aggregator
     /// @param missingWalletFunds - Amount of ETH to pay the EntryPoint for processing the transaction
     function validateUserOp(
         UserOperation calldata userOp,
         bytes32 userOpHash,
-        address aggregator,
         uint256 missingWalletFunds
     ) external override onlyEntryPointOrOwner returns (uint256 deadline) {
         // Validate signature
@@ -176,7 +174,7 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
         bytes[] calldata payload
     ) external onlyEntryPointOrOwner {
         if (target.length != payload.length || payload.length != value.length)
-            revert LengthMismatch();
+            revert("length mismatch");
         for (uint256 i; i < target.length; ) {
             _call(target[i], value[i], payload[i]);
             unchecked {
@@ -188,7 +186,7 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     /// @notice Transfer ownership by onlyGuardian
     function transferOwnership(address newOwner) public returns(address){
         AccountStorage.Layout storage layout = AccountStorage.layout();
-        require(msg.sender == layout.guardianModule);
+        require(msg.sender == layout.guardianModule,"invalid call");
         
         layout.owner = newOwner;
         emit OwnershipTransferred(msg.sender, newOwner);
@@ -196,8 +194,9 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     }
 
     /// @notice  upgrade the wallet
-    function UpgradeTo(address newImplementation) external onlyEntryPointOrOwner {
+    function UpgradeTo(address newImplementation) external onlyEntryPointOrOwner  returns(address){
         _upgradeTo(newImplementation);
+        return _getImplementation();
     }
 
     /// Upgrade Guardian Module???
@@ -242,17 +241,17 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     /////////////////  DEPOSITE MANAGER ///////////////
 
     /// @notice Returns the wallet's deposit in EntryPoint
-    function getDeposite() public view returns (uint256) {
+    function getDeposit() public view returns (uint256) {
         return entryPoint().balanceOf(address(this));
     }
 
     /// @notice Add to the deposite of the wallet in EntryPoint. Deposit is used to pay user gas fees
-    function addDeposite() public payable {
+    function addDeposit() public payable {
         entryPoint().depositTo{value: msg.value}(address(this));
     }
 
     /// @notice Withdraw funds from the wallet's deposite in EntryPoint
-    function withdrawDepositeTo(
+    function withdrawDepositTo(
         address payable to,
         uint256 amount
     ) public onlyOwner {
@@ -268,7 +267,7 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
     ) internal view {
         bytes32 messageHash = ECDSA.toEthSignedMessageHash(userOpHash);
         address signer = ECDSA.recover(messageHash, userOp.signature);
-        if (signer != owner()) revert InvalidSignature();
+        if (signer != owner()) revert("invalid signature");
     }
 
     /// @notice Pay the EntryPoint in ETH ahead of time for the transaction that it will execute

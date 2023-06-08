@@ -12,7 +12,6 @@ interface IAccount {
      *      Must validate the signature and nonce
      * @param userOp the operation that is about to be executed.
      * @param userOpHash hash of the user's request data. can be used as the basis for signature.
-     * @param aggregator the aggregator used to validate the signature. NULL for non-aggregated signature accounts.
      * @param missingAccountFunds missing funds on the account's deposit in the entrypoint.
      *      This is the minimum amount to transfer to the sender(entryPoint) to be able to make the call.
      *      The excess is left as a deposit in the entrypoint, for future calls.
@@ -24,7 +23,6 @@ interface IAccount {
     function validateUserOp(
         UserOperation calldata userOp,
         bytes32 userOpHash,
-        address aggregator,
         uint256 missingAccountFunds
     ) external returns (uint256 deadline);
 }

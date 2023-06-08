@@ -2,7 +2,7 @@
 forge-std/=lib/forge-std/src/
 src/=src/
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
-
+v3-periphery/ = lib/v3-periphery/contracts/
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 hardhat/=node_modules/hardhat/
