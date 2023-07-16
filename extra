@@ -1,0 +1,65 @@
+/////////////////  Guardian MANAGER ///////////////
+
+    // /// @notice add guardian for account recovery
+    // /// @param _guardians address of guardian
+    // /// @param _signatures signature of for guardain agreeness verification
+    // function addGuardian(address [] calldata _guardians, bytes [] calldata _signatures, uint256 _threshold) external onlyEntryPointOrOwner {
+    //     //require(msg.sender.code.length>0,"Not SCW");
+    //     AccountStorage.Layout storage layout = AccountStorage.layout();
+    //     AccountStorage.GuardianStorageEntry storage entry = layout.entries[address(this)];
+    //     require(_threshold>1,"threshold should be greater then zero");
+    //     require(_guardians.length==_signatures.length,"length mismatch");
+    //     // GuardianStorageEntry storage entry = entries[msg.sender];
+    //     bytes32 dataHash  = keccak256(abi.encodePacked(address(this)));
+    //     for(uint256 i;i<_guardians.length;){
+    //     require(SignatureChecker.isValidSignatureNow(_guardians[i],dataHash, _signatures[i]), "invalid guardian signature");
+    //     require(bytes20(entry.guardians[_guardians[i]]) == bytes32(0), "duplicate guardian"); 
+    //     entry.guardians[_guardians[i]] = _signatures[i];    
+    //         unchecked{
+    //             ++i;
+    //         }
+    //     }
+    //     entry.threshold = _threshold;
+    // }
+
+    // /// @notice recover wallet by calling changeOwner after guardian verification
+    // /// @param _guardians addresses of guardian
+    // /// @param _signatures signature signed by guardians indexed correctly acc to guardian address
+    // /// @param _newOwner new owner to set
+    // function recoverAccount(address [] calldata _guardians,bytes[] calldata _signatures, address _newOwner) external payable{
+    //     AccountStorage.Layout storage layout = AccountStorage.layout();
+    //     AccountStorage.GuardianStorageEntry storage entry = layout.entries[address(this)];
+    //     require(_guardians.length==_signatures.length,"length mismatch");
+    //     require(_signatures.length>=entry.threshold,"min threshold require"); 
+    //     require(_newOwner!=address(0),"zero address");
+    //     bytes32 dataHash = keccak256(abi.encodePacked(_newOwner));
+    //     for(uint256 i;i<_signatures.length;){
+    //         require(bytes20(entry.guardians[_guardians[i]]) != bytes32(0), "not guardian");
+    //         require(SignatureChecker.isValidSignatureNow(_guardians[i], dataHash, _signatures[i]), "invalid guardian signature");
+    //         unchecked{
+    //             ++i;
+    //         }
+    //     }
+    //     layout.owner = _newOwner;
+    //     emit OwnershipTransferred(msg.sender, _newOwner);
+    // }
+
+    // /// @notice revoke guardian
+    // /// @param _guardian address of guardian 
+    // function revokeGuardian(address _guardian) external onlyEntryPointOrOwner{
+    //     AccountStorage.Layout storage layout = AccountStorage.layout();
+    //     AccountStorage.GuardianStorageEntry storage entry = layout.entries[address(this)];
+    //     require(bytes20(entry.guardians[_guardian]) != bytes32(0), "guardian not set");
+    //     delete entry.guardians[_guardian];
+    // }
+
+    // /// @notice update threshold
+    // /// @dev its open to dapp to call updatethreshhold through multicall or explicitly once certain set of guardian are set 
+    // /// @param _threshold number for threshold
+    // function updateThreshold(uint256 _threshold) external onlyEntryPointOrOwner{
+    //     require(_threshold>1,"threshold<1");
+    //     AccountStorage.Layout storage layout = AccountStorage.layout();
+    //     AccountStorage.GuardianStorageEntry storage entry = layout.entries[address(this)];
+    //     require(entry.threshold>0,"threshold not set");
+    //     entry.threshold = _threshold;
+    // }

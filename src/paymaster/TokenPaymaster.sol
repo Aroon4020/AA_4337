@@ -161,7 +161,7 @@ contract TokenPaymaster is ITokenPaymaster, Ownable {
         UserOperation calldata userOp,
         address token,
         uint256 tokenRequiredPreFund
-    ) internal view {
+    ) internal view { 
         address factory = address(bytes20(userOp.initCode));
         require(factory == walletFactory, "unknown wallet factory");//paymaster associate with one factory??
         require(
@@ -178,7 +178,7 @@ contract TokenPaymaster is ITokenPaymaster, Ownable {
         address _destAddress = address(0);
         for (uint256 i = 0; i < dest.length; i++) {
             address destAddr = dest[i];
-            require(_isSupportedToken(destAddr), "unsupported token");
+            
             if (destAddr == token) {
                 (address spender, uint256 amount) = _decodeApprove(func[i]);
                 require(spender == address(this), "invalid spender");
@@ -190,7 +190,7 @@ contract TokenPaymaster is ITokenPaymaster, Ownable {
         // callGasLimit
         uint256 callGasLimit = dest.length * SAFE_APPROVE_GAS_COST;
         require(
-            userOp.callGasLimit >=  z,
+            userOp.callGasLimit >=  callGasLimit,
             "Paymaster: gas too low for postOp"
         );
     }
@@ -212,6 +212,7 @@ contract TokenPaymaster is ITokenPaymaster, Ownable {
             userOp.paymasterAndData[20:],//first 20 byte paymaster address next token address and amount
             (address, uint256)
         );
+        require(_isSupportedToken(token), "unsupported token");
         IERC20 ERC20Token = IERC20(token);
 
         (uint256 _price, uint8 _decimals) = this.exchangePrice(token);
@@ -289,22 +290,29 @@ contract TokenPaymaster is ITokenPaymaster, Ownable {
      * @param fee pool fee
      */
 
-    function swapAndDeposit(address token, uint256 amount, uint256 amountOutMinimum, uint24 fee) public onlyOwner {
-        require(IERC20(token).balanceOf(address(this))>=amount,"invalid amount");
-        IERC20(token).approve(router,amount);
-    ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams(
-        token,
-        WETH9,
-        fee,
-        address(this),
-        block.timestamp,
-        amountOutMinimum,
-        amount,
-        0
-    );
-    ISwapRouter(router).exactOutputSingle(params);
-    _IEntryPoint.depositTo{value: address(this).balance}(address(this));
+    function swapAndDeposit(
+    address token,
+    uint256 amount,
+    uint256 amountOutMinimum,
+    uint24 fee
+    ) public onlyOwner {
+        require(IERC20(token).balanceOf(address(this)) >= amount, "invalid amount");
+        IERC20(token).approve(router, amount);
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+            .ExactInputSingleParams({
+                tokenIn: token,
+                tokenOut: WETH9,
+                fee: fee,
+                recipient: address(this), // Send the output tokens to this contract
+                deadline: block.timestamp,
+                amountIn: amount,
+                amountOutMinimum: amountOutMinimum,
+                sqrtPriceLimitX96: 0 // No price limit
+            });
+        ISwapRouter(router).exactInputSingle(params);
+        _IEntryPoint.depositTo{value: address(this).balance}(address(this));
     }
+
 
     /**
      * withdraw value from the deposit

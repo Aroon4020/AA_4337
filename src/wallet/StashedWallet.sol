@@ -52,24 +52,6 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
         _;
     }
 
-    // /////////////////  ERRORS ///////////////
-
-    // /// @dev Reverts in case not valid owner
-    // error InvalidOwner();
-
-    // /// @dev Reverts in case not valid entryPoint or owner
-    // error InvalidEntryPointOrOwner();
-
-    // /// @dev Reverts when zero address is assigned
-    // error ZeroAddressProvided();
-
-    // /// @dev Reverts when array argument size mismatch
-    // error LengthMismatch();
-
-    // /// @dev Reverts in case not valid signature
-    // error InvalidSignature();
-
-    /////////////////  CONSTRUCTOR ///////////////
 
     /// @dev This prevents initialization of the implementation contract itself
     constructor() {
@@ -198,9 +180,6 @@ contract StashedWallet is IAccount, Initializable, Upgradeable, TokenCallbackHan
         _upgradeTo(newImplementation);
         return _getImplementation();
     }
-
-    /// Upgrade Guardian Module???
-
     /////////////////  ASSETS MANAGER ///////////////
 
     /// @notice Transfer ETH out of the wallet. Permissioned to only the owner

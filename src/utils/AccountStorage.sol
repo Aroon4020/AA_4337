@@ -8,9 +8,17 @@ import "./Initializable.sol";
 
 library AccountStorage {
     bytes32 private constant ACCOUNT_SLOT = keccak256("stashed.contracts.AccountStorage");
+    
+    struct GuardianStorageEntry {
+        // the list of guardians
+        mapping(address => bytes) guardians;
+        // recovery threshold
+        uint256 threshold;
+    }
     struct Layout {
         
         IEntryPoint entryPoint;  
+        address guardianModule;
         address owner;       
         uint96 nonce;            
         uint256[50] __gap_0;
@@ -18,7 +26,9 @@ library AccountStorage {
         Initializable.InitializableLayout initializableLayout;
         uint256[50] __gap_1;
 
-        address guardianModule;
+        // list of guardian detail against a wallet
+       // mapping (address => GuardianStorageEntry)  entries;
+
     }
 
     function layout() internal pure returns (Layout storage l) {
